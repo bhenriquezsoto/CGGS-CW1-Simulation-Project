@@ -6,11 +6,11 @@ project(CourseWork1Simulation)
 set(CMAKE_CXX_STANDARD 17)
 
 # Specify the directories for Eigen and Polyscope
-set(EIGEN3_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../../../external/Eigen)
-set(POLYSCOPE_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../../../external/polyscope/include)
+set(EIGEN3_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../external/Eigen)
+set(POLYSCOPE_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../external/polyscope/include)
 set(CW0_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
 
-add_subdirectory("${CMAKE_SOURCE_DIR}/../../../external/polyscope" "polyscope")
+add_subdirectory("${CMAKE_SOURCE_DIR}/../external/polyscope" "polyscope")
 
 add_library(common_includes INTERFACE)
 target_include_directories(common_includes INTERFACE
