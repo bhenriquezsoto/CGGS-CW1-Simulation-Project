@@ -3,7 +3,7 @@
 This is the repository for the skeleton code of the entire coursework. To get the repository, write in a terminal:
 
 ```
-git clone --recurse-submodules https://github.com/avaxman/CGGS-CW1-Geometry.git
+git clone --recurse-submodules https://github.com/avaxman/CGGS-CW1-Simulation.git
 
 ```
 
