@@ -7,6 +7,11 @@
 #include <random>
 #include <chrono>
 #include <filesystem>
+#include <math.h>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 using namespace Eigen;
 using namespace std;
