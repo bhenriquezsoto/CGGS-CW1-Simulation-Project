@@ -127,6 +127,7 @@ public:
   //return the current inverted inertia tensor around the current COM. Update it by applying the orientation
   Matrix3d get_curr_inv_IT(){
     /****************************TODO: implement this function***************************/
+    return Matrix3d::Zero();
   }
   
   
