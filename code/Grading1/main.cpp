@@ -228,8 +228,8 @@ int main()
   }
   if ((resultOrientations2GT-resultOrientations2).cwiseAbs().maxCoeff(&maxRow, &maxCol)>tolerance){
     cout<<"Orientation result for mesh 2 differs on sample "<<maxRow<<endl;
-    cout<<"GT: "<<resultOrientations1GT.row(maxRow)<<endl;
-    cout<<"Your result: "<<resultOrientations1.row(maxRow)<<endl;
+    cout<<"GT: "<<resultOrientations2GT.row(maxRow)<<endl;
+    cout<<"Your result: "<<resultOrientations2.row(maxRow)<<endl;
   } else{
     cout<<"Orientation result for mesh 2 is good! "<<endl;
     collisionGrade+=1.25;
@@ -237,8 +237,8 @@ int main()
   
   if ((resultLinVelocities1GT-resultLinVelocities1).cwiseAbs().maxCoeff(&maxRow, &maxCol)>tolerance){
     cout<<"COM velocity result form mesh 1 differs on sample "<<maxRow<<endl;
-    cout<<"GT: "<<resultLinVelocities2GT.row(maxRow)<<endl;
-    cout<<"Your result: "<<resultLinVelocities2.row(maxRow)<<endl;
+    cout<<"GT: "<<resultLinVelocities1GT.row(maxRow)<<endl;
+    cout<<"Your result: "<<resultLinVelocities1.row(maxRow)<<endl;
   } else{
     cout<<"COM velocity for mesh 1 result is good! "<<endl;
     collisionGrade+=1.25;
