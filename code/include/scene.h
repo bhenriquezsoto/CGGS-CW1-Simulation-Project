@@ -47,16 +47,61 @@ public:
    This function handles a collision between objects ro1 and ro2 when found, by assigning impulses to both objects.
    Input: RigidObjects m1, m2
    depth: the depth of penetration
-   contactNormal: the normal of the conact measured m1->m2
+   contactNormal: the normal of the contact measured m1->m2
    penPosition: a point on m2 such that if m2 <= m2 + depth*contactNormal, then penPosition+depth*contactNormal is the common contact point
    CRCoeff: the coefficient of restitution
    *********************************************************************/
-  void handle_collision(Mesh& m1, Mesh& m2,const double& depth, const RowVector3d& contactNormal,const RowVector3d& penPosition, const double CRCoeff){
-    
-    
-    /**************TODO: implement this function**************/
-    
-  }
+  void handle_collision(Mesh& m1, Mesh& m2, 
+                      double depth, 
+                      const RowVector3d& contactNormal,
+                      const RowVector3d& penPosition, 
+                      double CRCoeff)
+{
+    // 1) Weighted push-out
+    double sumInvMass = m1.totalInvMass + m2.totalInvMass;
+    double w1 = (m1.totalInvMass / sumInvMass);
+    double w2 = (m2.totalInvMass / sumInvMass);
+
+    // Move m1 back along -n, m2 forward along +n
+    m1.COM -= w1 * depth * contactNormal;
+    m2.COM += w2 * depth * contactNormal;
+
+    // 2) Recompute contact point so it stays on both bodies
+    //    If penPosition was the point on m2, add the fraction of the push-out
+    RowVector3d contactPoint = penPosition + (w2 * depth) * contactNormal;
+
+    // 3) Now find r1, r2
+    RowVector3d r1 = contactPoint - m1.COM;
+    RowVector3d r2 = contactPoint - m2.COM;
+
+    // 4) Compute relative velocity along the normal
+    RowVector3d v1 = m1.comVelocity + m1.angVelocity.cross(r1);
+    RowVector3d v2 = m2.comVelocity + m2.angVelocity.cross(r2);
+    RowVector3d relV = v1 - v2;
+    double normalVel = relV.dot(contactNormal);
+
+    // 5) Compute impulse
+    Matrix3d invI1 = m1.get_curr_inv_IT();
+    Matrix3d invI2 = m2.get_curr_inv_IT();
+    double denom =
+        m1.totalInvMass + m2.totalInvMass +
+        (r1.cross(contactNormal)).dot(invI1 * (r1.cross(contactNormal)).transpose()) +
+        (r2.cross(contactNormal)).dot(invI2 * (r2.cross(contactNormal)).transpose());
+
+    double j = -(1.0 + CRCoeff) * normalVel / denom;
+    RowVector3d impulse = j * contactNormal;
+
+    // 6) Apply impulse (unless truly fixed)
+    if (!m1.isFixed) {
+        m1.comVelocity  += impulse * m1.totalInvMass;
+        m1.angVelocity  += invI1 * (r1.cross(impulse)).transpose();
+    }
+    if (!m2.isFixed) {
+        m2.comVelocity  -= impulse * m2.totalInvMass;
+        m2.angVelocity  -= invI2 * (r2.cross(impulse)).transpose();
+    }
+}
+
   
   
   

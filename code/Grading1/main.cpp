@@ -116,7 +116,7 @@ int main()
     integrationGrade+=2.5;
   }
   if ((resultOrientationsGT-resultOrientations).cwiseAbs().maxCoeff(&maxRow, &maxCol)>tolerance){
-    cout<<"COM result differs on sample "<<maxRow<<endl;
+    cout<<"Orientation result differs on sample "<<maxRow<<endl;
     cout<<"GT: "<<resultOrientationsGT.row(maxRow)<<endl;
     cout<<"Your result: "<<resultOrientations.row(maxRow)<<endl;
   } else{
