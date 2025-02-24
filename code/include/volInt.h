@@ -112,8 +112,8 @@ static Eigen::RowVector3d T1, T2, TP;
     fscanf(fp, "%d", &f->numVerts);
     for (j = 0; j < f->numVerts; j++) fscanf(fp, "%d", &f->verts[j]);
 
-    /* compute face normal and offset w from first 3 vertices */
-    /*dx1 = p->verts[f->verts[1]][X] - p->verts[f->verts[0]][X];
+    // compute face normal and offset w from first 3 vertices
+    dx1 = p->verts[f->verts[1]][X] - p->verts[f->verts[0]][X];
     dy1 = p->verts[f->verts[1]][Y] - p->verts[f->verts[0]][Y];
     dz1 = p->verts[f->verts[1]][Z] - p->verts[f->verts[0]][Z];
       

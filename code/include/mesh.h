@@ -136,16 +136,16 @@ public:
   void update_position(double timeStep) 
 {
     if (!isFixed) {
-        // 1) Linear update
+        // We update the position of the center of mass
         COM += comVelocity * timeStep;
 
-        // 2) Angular update
+        //We update the orientation of the object
         RowVector4d omega_quat;
         omega_quat << 0, angVelocity(0), angVelocity(1), angVelocity(2);
         RowVector4d dq = QExp(0.5 * timeStep * omega_quat);
         orientation = QMult(dq, orientation);
         
-        // Normalize to prevent quaternion drift
+        // We normalize the quaternion to prevent quaternion drift
         orientation.normalize();
     }
 }
@@ -257,7 +257,6 @@ public:
   void update_velocity(double timeStep){
     if (!isFixed) {
         RowVector3d gravity = RowVector3d(0.0, -9.8, 0.0);
-        // Update only linear velocity with gravity
         comVelocity += gravity * timeStep;
     }
   }
