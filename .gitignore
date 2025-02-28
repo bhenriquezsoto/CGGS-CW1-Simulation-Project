@@ -34,3 +34,6 @@ code/build/*
 *.app
 
 /media
+../../CGGS-Coursework-1-Simulation-Rigid-Body-Simulation.pdf
+research/Dynamic BVH GDC 2019.pdf
+../../.DS_Store

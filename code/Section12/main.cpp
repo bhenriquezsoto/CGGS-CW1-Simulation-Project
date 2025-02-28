@@ -47,7 +47,7 @@ void callback_function() {
 int main()
 {
   
-  scene.load_scene("two_cylinder-scene.txt","two_cylinder-constraints.txt");
+  scene.load_scene("robust-scene.txt", "no-constraints.txt");
   polyscope::init();
   
   scene.update_scene(0.0, CRCoeff, maxIterations, tolerance);

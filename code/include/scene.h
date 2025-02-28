@@ -9,6 +9,7 @@
 #include "readMESH.h"
 #include "mesh.h"
 #include "constraints.h"
+#include "aabbtree.h"
 
 using namespace Eigen;
 using namespace std;
@@ -27,19 +28,22 @@ public:
   MatrixXd currV, currConstVertices;
   
   
-  //adding an objects. You do not need to update this generally
   void add_mesh(const MatrixXd& V, const MatrixXi& F, const MatrixXi& T, const double density, const bool isFixed, const RowVector3d& COM, const RowVector4d& orientation){
+    meshes.push_back(Mesh(V,F, T, density, isFixed, COM, orientation));
     
-    Mesh m(V,F, T, density, isFixed, COM, orientation);
-    meshes.push_back(m);
-    //cout<<"m.origV.row(0): "<<m.origV.row(0)<<endl;
-    //cout<<"m.currV.row(0): "<<m.currV.row(0)<<endl;
+    // Update mesh pointers
+    meshPointers.clear();
+    meshPointers.reserve(meshes.size());
+    for (int i = 0; i < meshes.size(); i++) {
+        meshPointers.push_back(&meshes[i]);
+    }
     
+    // Update visualization matrices
     MatrixXi newAllF(allF.rows()+F.rows(),3);
     newAllF<<allF, (F.array()+currV.rows()).matrix();
     allF = newAllF;
     MatrixXd newCurrV(currV.rows()+V.rows(),3);
-    newCurrV<<currV, m.currV;
+    newCurrV<<currV, meshes.back().currV;
     currV = newCurrV;
   }
   
@@ -74,7 +78,7 @@ public:
     RowVector3d relV = v1 - v2;
     double normalVel = relV.dot(contactNormal);
 
-    // This makes the grading fails but makes the simulation 
+    // This makes the grading fails but makes the simulation more stable
     // if (normalVel > 0) {
     //   return;
     // }
@@ -126,14 +130,39 @@ public:
     for (int i=0;i<meshes.size();i++)
       meshes[i].integrate(timeStep);
     
+    // Update mesh pointers and AABB tree
+    meshPointers.clear(); 
+    meshPointers.reserve(meshes.size());  // Reserve space to avoid reallocations
+    for (int i = 0; i < meshes.size(); i++) {
+        meshPointers.push_back(&meshes[i]);
+    }
+    
+    // Update AABB tree
+    if (!aabbTree && !meshes.empty()) {
+        aabbTree = make_unique<AABBTree>(meshPointers);
+    } else if (aabbTree) {
+        aabbTree->update();
+    }
+    
     //detecting and handling collisions when found
-    //This is done exhaustively: checking every two objects in the scene.
     double depth;
     RowVector3d contactNormal, penPosition;
-    for (int i=0;i<meshes.size();i++)
-      for (int j=i+1;j<meshes.size();j++)
-        if (meshes[i].is_collide(meshes[j],depth, contactNormal, penPosition))
-          handle_collision(meshes[i], meshes[j],depth, contactNormal, penPosition,CRCoeff);
+    
+    // Get potential collision pairs from AABB tree
+    if (aabbTree) {
+        auto potentialCollisions = aabbTree->findPotentialCollisions();
+        
+        // Check only potential collisions
+        for (const auto& pair : potentialCollisions) {
+            // Get bounding boxes for the pair
+            AABB box1 = aabbTree->getMeshAABB(pair.first);
+            AABB box2 = aabbTree->getMeshAABB(pair.second);
+            
+            if (meshes[pair.first].is_collide(meshes[pair.second], depth, contactNormal, penPosition)) {
+                handle_collision(meshes[pair.first], meshes[pair.second], depth, contactNormal, penPosition, CRCoeff);
+            }
+        }
+    }
     
     //colliding with the pseudo-mesh of the ground
     for (int i=0;i<meshes.size();i++){
@@ -177,8 +206,6 @@ public:
         //resolving velocity
         currConstPos1 = QRot(origConstPos1, meshes[currConstraint.m1].orientation)+meshes[currConstraint.m1].COM;
         currConstPos2 = QRot(origConstPos2, meshes[currConstraint.m2].orientation)+meshes[currConstraint.m2].COM;
-        //cout<<"(currConstPos1-currConstPos2).norm(): "<<(currConstPos1-currConstPos2).norm()<<endl;
-        //cout<<"(meshes[currConstraint.m1].currV.row(currConstraint.v1)-meshes[currConstraint.m2].currV.row(currConstraint.v2)).norm(): "<<(meshes[currConstraint.m1].currV.row(currConstraint.v1)-meshes[currConstraint.m2].currV.row(currConstraint.v2)).norm()<<endl;
         currCOMPositions<<meshes[currConstraint.m1].COM, meshes[currConstraint.m2].COM;
         currConstPositions<<currConstPos1, currConstPos2;
         MatrixXd currCOMVelocities(2,3); currCOMVelocities<<meshes[currConstraint.m1].comVelocity, meshes[currConstraint.m2].comVelocity;
@@ -273,10 +300,8 @@ public:
       int attachM1, attachM2, attachV1, attachV2;
       double lowerBound, upperBound;
       constraintFileHandle>>attachM1>>attachV1>>attachM2>>attachV2>>lowerBound>>upperBound;
-      //cout<<"Constraints: "<<attachM1<<","<<attachV1<<","<<attachM2<<","<<attachV2<<","<<lowerBound<<","<<upperBound<<endl;
       
       double initDist=(meshes[attachM1].currV.row(attachV1)-meshes[attachM2].currV.row(attachV2)).norm();
-      //cout<<"initDist: "<<initDist<<endl;
       double invMass1 = (meshes[attachM1].isFixed ? 0.0 : meshes[attachM1].totalInvMass);  //fixed meshes have infinite mass
       double invMass2 = (meshes[attachM2].isFixed ? 0.0 : meshes[attachM2].totalInvMass);
       constraints.push_back(Constraint(DISTANCE, INEQUALITY,false, attachM1, attachV1, attachM2, attachV2, invMass1,invMass2,RowVector3d::Zero(), lowerBound*initDist, 0.0));
@@ -290,8 +315,17 @@ public:
   }
   
   
-  Scene(){allF.resize(0,3); currV.resize(0,3);}
-  ~Scene(){}
+  Scene(){
+    allF.resize(0,3); 
+    currV.resize(0,3);
+    aabbTree = nullptr;
+    meshPointers.reserve(10);
+  }
+  ~Scene() {}
+
+private:
+  unique_ptr<AABBTree> aabbTree;
+  vector<Mesh*> meshPointers;
 };
 
 
